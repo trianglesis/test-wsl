@@ -1,0 +1,52 @@
+[
+    {
+        "rowid": "3252",
+        "co2_ppm": "769",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3251",
+        "co2_ppm": "800",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3250",
+        "co2_ppm": "819",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3249",
+        "co2_ppm": "767",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3248",
+        "co2_ppm": "742",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3247",
+        "co2_ppm": "710",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3246",
+        "co2_ppm": "693",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3245",
+        "co2_ppm": "675",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3244",
+        "co2_ppm": "658",
+        "measure_freq": "5000"
+    },
+    {
+        "rowid": "3243",
+        "co2_ppm": "650",
+        "measure_freq": "5000"
+    }
+]

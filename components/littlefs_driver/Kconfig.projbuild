@@ -1,0 +1,14 @@
+menu "AQS LittleFS"
+
+    config LFS_MOUNT_POINT
+        string "LittleFS Mount Point"
+        default "/littlefs"
+        help
+            How to name a mount point
+    config LFS_PARTITION_NAME
+        string "LittleFS Partition Name"
+        default "littlefs"
+        help
+            How to name a partition
+
+endmenu

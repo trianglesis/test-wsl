@@ -1,0 +1,49 @@
+dependencies:
+  espressif/led_strip:
+    component_hash: b578eb926d9f6402fd45398b53c9bd5d1b7a15c1b2974d25aa3088e6c79b0b4c
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 3.0.1
+  idf:
+    source:
+      type: idf
+    version: 5.4.1
+  joltwallet/littlefs:
+    component_hash: e1dbe782be5aa58e879fe9f22bee60e5ff68acbfe3793d92a2e730c27374c787
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.19.2
+  lvgl/lvgl:
+    component_hash: 096c69af22eaf8a2b721e3913da91918c5e6bf1a762a113ec01f401aa61337a0
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 9.2.2
+  nopnop2002/sqlite3:
+    component_hash: 356100311245731764af076eb275275ab68db6a1c4b4d7641358e7c56ad66f41
+    dependencies: []
+    source:
+      git: https://github.com/nopnop2002/esp32-idf-sqlite3.git
+      path: components/esp32-idf-sqlite3/
+      type: git
+    version: a27228d70b9bcf92149a28e7ea490661f9a9ca4d
+direct_dependencies:
+- espressif/led_strip
+- idf
+- joltwallet/littlefs
+- lvgl/lvgl
+- nopnop2002/sqlite3
+manifest_hash: 7f48033721857eb86469f66539062b63fd4bd18bb145d08f09d761ded0a58dbd
+target: esp32
+version: 2.0.0
