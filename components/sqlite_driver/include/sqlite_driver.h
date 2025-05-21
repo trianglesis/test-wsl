@@ -23,6 +23,7 @@ typedef struct SQLArgs {
     int cols;
     char *json_str;
     bool save_file;
+    SemaphoreHandle_t sql_done;
 } sql_args_t;
 
 

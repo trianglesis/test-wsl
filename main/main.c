@@ -24,6 +24,7 @@
 #include "littlefs_driver.h"
 #include "sqlite_driver.h"
 
+static SemaphoreHandle_t sql_done;
 
 static const char *TAG = "Test-WSL-EMUL";
 
@@ -61,19 +62,25 @@ void app_main(void) {
 
     // DEBUG and TEST:
     // Select CO2 values once
+    sql_done = xSemaphoreCreateBinary();
+
+    int offset = 0;
     sql_args_t* sql_args = (sql_args_t*) calloc(1, sizeof(sql_args_t));
-
-    sql_args->limit = 100;
-    sql_args->offset = 1;
-    sql_args->cols = 3;
-    sql_args->save_file = false;
-
     for (size_t i = 0; i < 3; i++) {
-        xTaskCreatePinnedToCore(select_co2_stats, "SQL-Select", 1024*6, sql_args, 5, NULL, tskNO_AFFINITY);
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        sql_args->limit = 100;
+        sql_args->offset = offset;
+        sql_args->cols = 3;
+        sql_args->save_file = false;
+        sql_args->sql_done = sql_done;
+
+        xTaskCreate(select_co2_stats, "SQL-Select", 1024*6, sql_args, 5, NULL);
+        xSemaphoreTake(sql_args->sql_done, portMAX_DELAY); //Wait for completion in task
 
         ESP_LOGI(TAG, "3 JSON:\n%s\n", sql_args->json_str);
-        sql_args->offset += 100;
+        offset += 100;
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
-
+    ESP_LOGI(TAG, "Finished DB Querying and converting to JSON, now clean and free!");
+    free(sql_args);
+    vSemaphoreDelete(sql_done);
 }

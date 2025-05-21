@@ -190,13 +190,14 @@ void parse_sql_response_to_json(void *sql_args_handle) {
     }
 
     // Free this as soon as we send it
-    printf("1 JSON\n%s\n", sql_args->json_str);
-    // cJSON_free(json_str);
-    // cJSON_Delete(root);
-    // root = NULL;
+    // printf("1 JSON\n%s\n", sql_args->json_str);
+    // cJSON_free(json_str);  // Should probably be freed by free(sql_args)
+    cJSON_Delete(root);  // Delete JSON objects
+    root = NULL;
 
     endHeap = esp_get_free_heap_size();
     ESP_LOGI(TAG, "startHeap=%"PRIi32" endHeap=%"PRIi32, startHeap, endHeap);
+    xSemaphoreGive( sql_args->sql_done );  // Release in task after finishing the job
 
 }
 
@@ -208,7 +209,7 @@ Use SQLArgs to set LIMIT and OFFSET for SQL Query
 void select_co2_stats(void *sql_args_handle) {
     sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
     ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d", sql_args->cols, sql_args->limit, sql_args->offset);
-
+    
     char db_name[32];
     snprintf(db_name, sizeof(db_name)-1, "%s/stats.db", DB_ROOT);
     sqlite3 *db;
@@ -220,7 +221,7 @@ void select_co2_stats(void *sql_args_handle) {
 
     // SELECT
     char table_sql[128];
-    snprintf(table_sql, sizeof(table_sql) + 1, "SELECT ROWID, co2_ppm, measure_freq FROM co2_stats ORDER BY rowid DESC LIMIT %d;", sql_args->limit);
+    snprintf(table_sql, sizeof(table_sql) + 1, "SELECT ROWID, co2_ppm, measure_freq FROM co2_stats ORDER BY rowid DESC LIMIT %d OFFSET %d;", sql_args->limit, sql_args->offset);
     rc = db_query(xMessageBufferQuery, db, table_sql);
     if (rc != SQLITE_OK) {
         ESP_LOGE(TAG, "DB SELECT, failed: \n%s\n", table_sql);
@@ -228,10 +229,9 @@ void select_co2_stats(void *sql_args_handle) {
 
     // Create JSON
     parse_sql_response_to_json(sql_args);
-    printf("2 JSON\n%s\n", sql_args->json_str);
+    // printf("2 JSON\n%s\n", sql_args->json_str);
     sqlite3_close(db);
     vTaskDelete(NULL);
-
 }
 
 /*
