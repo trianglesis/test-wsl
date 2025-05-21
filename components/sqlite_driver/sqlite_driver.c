@@ -67,7 +67,7 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
     int i;
     char tx_buffer[128];
     for (i = 0; i<argc; i++){
-        //printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        // printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
         int tx_length = sprintf(tx_buffer, "%s = %s", azColName[i], argv[i] ? argv[i] : "NULL");
         if (xMessageBuffer) {
             size_t sended = xMessageBufferSendFromISR((MessageBufferHandle_t)xMessageBuffer, tx_buffer, tx_length, NULL);
@@ -108,7 +108,7 @@ After iterating N cols:
 */
 void parse_sql_response_to_json(void *sql_args_handle) {
     sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
-
+    
     // Create JSON
     cJSON *root = NULL;
     cJSON *object[128];
@@ -116,20 +116,19 @@ void parse_sql_response_to_json(void *sql_args_handle) {
     int rowIndex = 0;  // Increment for each new row. After N of cols
     char itemName[128];
 	char itemValue[128];
-
+    
 	uint32_t startHeap = 0;
 	uint32_t endHeap = 0;
     startHeap = esp_get_free_heap_size();
-
+    
+    char sqlmsg[256];
+    size_t readBytes;
     // Init JSON structure
     root = cJSON_CreateArray();
     rowIndex = 0;  // Set the first ROW
-
     int count = 0;  // Simple counter, for each col:value pairs
     // Read selected
     while (1) {
-        char sqlmsg[256];
-        size_t readBytes;
         readBytes = xMessageBufferReceive(xMessageBufferQuery, sqlmsg, sizeof(sqlmsg), 100);
         if (readBytes == 0) break;  // Exit when EOF
         sqlmsg[readBytes] = 0;
@@ -198,7 +197,6 @@ void parse_sql_response_to_json(void *sql_args_handle) {
     endHeap = esp_get_free_heap_size();
     ESP_LOGI(TAG, "startHeap=%"PRIi32" endHeap=%"PRIi32, startHeap, endHeap);
     xSemaphoreGive( sql_args->sql_done );  // Release in task after finishing the job
-
 }
 
 /*
@@ -229,7 +227,6 @@ void select_co2_stats(void *sql_args_handle) {
 
     // Create JSON
     parse_sql_response_to_json(sql_args);
-    // printf("2 JSON\n%s\n", sql_args->json_str);
     sqlite3_close(db);
     vTaskDelete(NULL);
 }

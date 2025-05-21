@@ -71,7 +71,7 @@ void app_main(void) {
         We now selecting 3 cols: row id, measurement frequency and co2 ppm only for debug.
         We know the measurement frequency from CONFIG and can be sure SQL QUERY will return ordered items, so we can drop using 2 columns: id and freq, only using PPM values
         */
-        sql_args->limit = 100;
+        sql_args->limit = 50;
         sql_args->offset = offset;
         sql_args->cols = 3;
         sql_args->save_file = false;
@@ -81,10 +81,11 @@ void app_main(void) {
         xSemaphoreTake(sql_args->sql_done, portMAX_DELAY); //Wait for completion in task
 
         ESP_LOGI(TAG, "3 JSON:\n%s\n", sql_args->json_str);
-        offset += 100;
+        offset += 50;
         vTaskDelay(pdMS_TO_TICKS(100));
     }
     ESP_LOGI(TAG, "Finished DB Querying and converting to JSON, now clean and free!");
+    // This should also free all memory related to JSON strings too
     free(sql_args);
     vSemaphoreDelete(sql_done);
 }
