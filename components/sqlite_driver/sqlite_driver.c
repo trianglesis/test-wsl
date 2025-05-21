@@ -231,6 +231,29 @@ void select_co2_stats(void *sql_args_handle) {
     vTaskDelete(NULL);
 }
 
+void select_stats(void *sql_args_handle) {
+    sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
+    ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d", sql_args->cols, sql_args->limit, sql_args->offset);
+    
+    sqlite3 *db;
+    sqlite3_initialize();
+    int rc = db_open(sql_args->db_name, &db); // will print "Opened database successfully"
+    if (rc != SQLITE_OK) {
+        ESP_LOGE(TAG, "DB SELECT Cannot open database");
+    }
+
+    // SELECT
+    rc = db_query(xMessageBufferQuery, db, sql_args->table_sql);
+    if (rc != SQLITE_OK) {
+        ESP_LOGE(TAG, "DB SELECT, failed: \n%s\n", sql_args->table_sql);
+    }
+
+    // Create JSON
+    parse_sql_response_to_json(sql_args);
+    sqlite3_close(db);
+    vTaskDelete(NULL);
+}
+
 /*
 Create multiple tabled in one go.
 Already initialized.

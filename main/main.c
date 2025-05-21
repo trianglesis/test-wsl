@@ -53,13 +53,7 @@ void debug_chip_info(void) {
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 }
 
-void app_main(void) {
-    ESP_LOGI(TAG, "TEST WSL!!!!!");
-    debug_chip_info();
-    ESP_ERROR_CHECK(fs_setup());
-    // Skip tables check in setup
-    ESP_ERROR_CHECK(setup_db());
-
+void test_static_query(void) {
     // DEBUG and TEST:
     // Select CO2 values once
     sql_done = xSemaphoreCreateBinary();
@@ -71,7 +65,7 @@ void app_main(void) {
         We now selecting 3 cols: row id, measurement frequency and co2 ppm only for debug.
         We know the measurement frequency from CONFIG and can be sure SQL QUERY will return ordered items, so we can drop using 2 columns: id and freq, only using PPM values
         */
-        sql_args->limit = 50;
+        sql_args->limit = 10;
         sql_args->offset = offset;
         sql_args->cols = 3;
         sql_args->save_file = false;
@@ -88,4 +82,51 @@ void app_main(void) {
     // This should also free all memory related to JSON strings too
     free(sql_args);
     vSemaphoreDelete(sql_done);
+}
+
+void test_dynamic_query(void) {
+    // Another approach, more dynamic use of select
+    sql_done = xSemaphoreCreateBinary();
+    sql_args_t* sql_args = (sql_args_t*) calloc(1, sizeof(sql_args_t));
+    
+    char db_name[32];
+    snprintf(db_name, sizeof(db_name)-1, "%s/stats.db", DB_ROOT);
+    sql_args->db_name = db_name;
+    sql_args->sql_done = sql_done;
+    sql_args->save_file = false;  // Save to local FS, SD Card is best
+    sql_args->cols = 2;  // Amount of selected COLs, see query
+        
+    int offset = 0;
+    for (size_t i = 0; i < 3; i++) {
+        sql_args->limit = 10;  // MAX items to select
+        sql_args->offset = offset;  // Paging if needed
+    
+        // Each loop update
+        char table_sql[128];
+        snprintf(table_sql, sizeof(table_sql) + 1, "SELECT voltage_m, percentage FROM battery_stats ORDER BY rowid DESC LIMIT %d OFFSET %d;", sql_args->limit, sql_args->offset);
+        sql_args->table_sql = table_sql;
+        
+        xTaskCreate(select_stats, "SQL-Select", 1024*6, sql_args, 5, NULL);
+        xSemaphoreTake(sql_args->sql_done, portMAX_DELAY); //Wait for completion in task
+
+        ESP_LOGI(TAG, "3 JSON:\n%s\n", sql_args->json_str);
+        offset += 50;
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    ESP_LOGI(TAG, "Finished DYNAMIC DB Querying and converting to JSON, now clean and free!");
+    // This should also free all memory related to JSON strings too
+    free(sql_args);
+    vSemaphoreDelete(sql_done);
+}
+
+void app_main(void) {
+    ESP_LOGI(TAG, "TEST WSL!!!!!");
+    debug_chip_info();
+    ESP_ERROR_CHECK(fs_setup());
+    // Skip tables check in setup
+    ESP_ERROR_CHECK(setup_db());
+
+    // test_static_query();
+    test_dynamic_query();
+
 }

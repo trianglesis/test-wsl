@@ -21,6 +21,8 @@ typedef struct SQLArgs {
     int limit;
     int offset;
     int cols;
+    char *db_name;
+    char *table_sql;
     char *json_str;
     bool save_file;
     SemaphoreHandle_t sql_done;
@@ -33,3 +35,4 @@ void insert_task(void *pvParameters);
 void ins_task(void *pvParameters);
 
 void select_co2_stats(void *args);
+void select_stats(void *args);
