@@ -67,6 +67,10 @@ void app_main(void) {
     int offset = 0;
     sql_args_t* sql_args = (sql_args_t*) calloc(1, sizeof(sql_args_t));
     for (size_t i = 0; i < 3; i++) {
+        /*
+        We now selecting 3 cols: row id, measurement frequency and co2 ppm only for debug.
+        We know the measurement frequency from CONFIG and can be sure SQL QUERY will return ordered items, so we can drop using 2 columns: id and freq, only using PPM values
+        */
         sql_args->limit = 100;
         sql_args->offset = offset;
         sql_args->cols = 3;
