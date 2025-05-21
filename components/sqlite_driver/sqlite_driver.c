@@ -63,7 +63,7 @@ void sqlite_info(void) {
 
 static int callback(void *data, int argc, char **argv, char **azColName) {
     MessageBufferHandle_t *xMessageBuffer = (MessageBufferHandle_t *)data;
-    ESP_LOGD(__FUNCTION__, "data=[%p] xMessageBuffer=[%p]", data, xMessageBuffer);
+    ESP_LOGD(TAG, "data=[%p] xMessageBuffer=[%p]", data, xMessageBuffer);
     int i;
     char tx_buffer[128];
     for (i = 0; i<argc; i++){
@@ -71,7 +71,7 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
         int tx_length = sprintf(tx_buffer, "%s = %s", azColName[i], argv[i] ? argv[i] : "NULL");
         if (xMessageBuffer) {
             size_t sended = xMessageBufferSendFromISR((MessageBufferHandle_t)xMessageBuffer, tx_buffer, tx_length, NULL);
-            ESP_LOGD(__FUNCTION__, "sended=%d tx_length=%d", sended, tx_length);
+            ESP_LOGD(TAG, "sended=%d tx_length=%d", sended, tx_length);
             if (sended != tx_length) {
                 ESP_LOGE(TAG, "xMessageBufferSendFromISR fail tx_length=%d sended=%d", tx_length, sended);
             }
@@ -84,7 +84,7 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
 }
 
 int db_query(MessageBufferHandle_t xMessageBuffer, sqlite3 *db, const char *sql) {
-	ESP_LOGD(__FUNCTION__, "xMessageBuffer=[%p]", xMessageBuffer);
+	ESP_LOGD(TAG, "xMessageBuffer=[%p]", xMessageBuffer);
 	char *zErrMsg = 0;
 	printf("%s\n", sql);
 	int rc = sqlite3_exec(db, sql, callback, xMessageBuffer, &zErrMsg);
@@ -106,7 +106,9 @@ After iterating N cols:
      - update ROW counter by 1
      - reset COLs counter to 0
 */
-void parse_sql_response_to_json(int cols, bool save_file) {
+void parse_sql_response_to_json(void *sql_args_handle) {
+    sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
+
     // Create JSON
     cJSON *root = NULL;
     cJSON *object[128];
@@ -123,11 +125,11 @@ void parse_sql_response_to_json(int cols, bool save_file) {
     root = cJSON_CreateArray();
     rowIndex = 0;  // Set the first ROW
 
-    char sqlmsg[256];
-    size_t readBytes;
     int count = 0;  // Simple counter, for each col:value pairs
     // Read selected
     while (1) {
+        char sqlmsg[256];
+        size_t readBytes;
         readBytes = xMessageBufferReceive(xMessageBufferQuery, sqlmsg, sizeof(sqlmsg), 100);
         if (readBytes == 0) break;  // Exit when EOF
         sqlmsg[readBytes] = 0;
@@ -162,7 +164,7 @@ void parse_sql_response_to_json(int cols, bool save_file) {
         colIndex++; // Increment when single COL parsed
 
         // When overall count is divisible by cols selected - this is one ROW's end
-        if (count % cols == 0) {
+        if (count % sql_args->cols == 0) {
             // Add one object into the common root
             cJSON_AddItemToArray(root, object[rowIndex]);
             // One row = one JSON object
@@ -173,10 +175,9 @@ void parse_sql_response_to_json(int cols, bool save_file) {
     } // WHILE
 
     // Now JSON and FILE
-    char *json_str = cJSON_PrintUnformatted(root);
-    printf("JSON\n%s\n", json_str);
+    sql_args->json_str = cJSON_PrintUnformatted(root);
 
-    if (save_file) {
+    if (sql_args->save_file) {
         FILE* f = NULL;
         char JSONFile[64];
         sprintf(JSONFile, "%s/local.json", DB_ROOT);
@@ -184,16 +185,19 @@ void parse_sql_response_to_json(int cols, bool save_file) {
         if (f == NULL) {
             ESP_LOGE(TAG, "Failed to open local file");
         }
-        fprintf(f, "%s", json_str);
+        fprintf(f, "%s", sql_args->json_str);
         if (f != NULL) fclose(f);
     }
 
-    cJSON_free(json_str);
-    cJSON_Delete(root);
-    root = NULL;
+    // Free this as soon as we send it
+    printf("1 JSON\n%s\n", sql_args->json_str);
+    // cJSON_free(json_str);
+    // cJSON_Delete(root);
+    // root = NULL;
 
     endHeap = esp_get_free_heap_size();
     ESP_LOGI(TAG, "startHeap=%"PRIi32" endHeap=%"PRIi32, startHeap, endHeap);
+
 }
 
 /*
@@ -201,10 +205,9 @@ Select limited amout of records from the table.
 Use SQLArgs to set LIMIT and OFFSET for SQL Query
 
 */
-void select_co2_stats(void *args) {
-    sql_args_t sql_args = *(sql_args_t *) args;
-    int cols = 3;
-    ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d", cols, sql_args.limit, sql_args.offset);
+void select_co2_stats(void *sql_args_handle) {
+    sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
+    ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d", sql_args->cols, sql_args->limit, sql_args->offset);
 
     char db_name[32];
     snprintf(db_name, sizeof(db_name)-1, "%s/stats.db", DB_ROOT);
@@ -217,18 +220,16 @@ void select_co2_stats(void *args) {
 
     // SELECT
     char table_sql[128];
-    snprintf(table_sql, sizeof(table_sql) + 1, "SELECT ROWID, co2_ppm, measure_freq FROM co2_stats ORDER BY rowid DESC LIMIT %d;", sql_args.limit);
+    snprintf(table_sql, sizeof(table_sql) + 1, "SELECT ROWID, co2_ppm, measure_freq FROM co2_stats ORDER BY rowid DESC LIMIT %d;", sql_args->limit);
     rc = db_query(xMessageBufferQuery, db, table_sql);
     if (rc != SQLITE_OK) {
         ESP_LOGE(TAG, "DB SELECT, failed: \n%s\n", table_sql);
     }
 
     // Create JSON
-    parse_sql_response_to_json(3, false);
-    
+    parse_sql_response_to_json(sql_args);
+    printf("2 JSON\n%s\n", sql_args->json_str);
     sqlite3_close(db);
-    
-    printf("All Done\n");
     vTaskDelete(NULL);
 
 }

@@ -56,17 +56,24 @@ void app_main(void) {
     ESP_LOGI(TAG, "TEST WSL!!!!!");
     debug_chip_info();
     ESP_ERROR_CHECK(fs_setup());
-
     // Skip tables check in setup
     ESP_ERROR_CHECK(setup_db());
 
     // DEBUG and TEST:
     // Select CO2 values once
-	TaskHandle_t xHandle;
-    sql_args_t sql_args;
-    sql_args.limit = 100;
-    sql_args.offset = 1;
-    xTaskCreatePinnedToCore(select_co2_stats, "SQL-Select", 1024*6, &sql_args, 5, &xHandle, tskNO_AFFINITY);
+    sql_args_t* sql_args = (sql_args_t*) calloc(1, sizeof(sql_args_t));
 
+    sql_args->limit = 100;
+    sql_args->offset = 1;
+    sql_args->cols = 3;
+    sql_args->save_file = false;
+
+    for (size_t i = 0; i < 3; i++) {
+        xTaskCreatePinnedToCore(select_co2_stats, "SQL-Select", 1024*6, sql_args, 5, NULL, tskNO_AFFINITY);
+        vTaskDelay(pdMS_TO_TICKS(5000));
+
+        ESP_LOGI(TAG, "3 JSON:\n%s\n", sql_args->json_str);
+        sql_args->offset += 100;
+    }
 
 }
