@@ -233,7 +233,7 @@ void select_co2_stats(void *sql_args_handle) {
 
 void select_stats(void *sql_args_handle) {
     sql_args_t* sql_args = (sql_args_t*) sql_args_handle;
-    ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d", sql_args->cols, sql_args->limit, sql_args->offset);
+    ESP_LOGI(TAG, "SQL SELECT: Columns: %d Limit %d Offset %d\nQUERY:\n%s", sql_args->cols, sql_args->limit, sql_args->offset, sql_args->table_sql);
     
     sqlite3 *db;
     sqlite3_initialize();

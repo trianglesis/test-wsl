@@ -70,6 +70,7 @@ void test_static_query(void) {
         sql_args->cols = 3;
         sql_args->save_file = false;
         sql_args->sql_done = sql_done;
+        sql_args->json_file = "co2_stats";  // Save to local FS, SD Card is best
 
         xTaskCreate(select_co2_stats, "SQL-Select", 1024*6, sql_args, 5, NULL);
         xSemaphoreTake(sql_args->sql_done, portMAX_DELAY); //Wait for completion in task
@@ -95,6 +96,8 @@ void test_dynamic_query(void) {
     sql_args->sql_done = sql_done;
     sql_args->save_file = false;  // Save to local FS, SD Card is best
     sql_args->cols = 2;  // Amount of selected COLs, see query
+    sql_args->json_file = "battery_stats";  // Save to local FS, SD Card is best
+
         
     int offset = 0;
     for (size_t i = 0; i < 3; i++) {
